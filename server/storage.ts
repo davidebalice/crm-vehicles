@@ -583,9 +583,118 @@ export class MemStorage implements IStorage {
   async getCustomer(id: number): Promise<Customer | undefined> {
     return this.customers.get(id);
   }
-
+  /*
   async getCustomers(): Promise<Customer[]> {
-    return Array.from(this.customers.values());
+    return (await db.select()).from(customers);
+  }
+
+*/
+
+  async getCustomers(options: {
+    filters?: {
+      status?: string;
+      condition?: string;
+      fuelType?: string;
+      makeId?: number;
+      modelId?: number;
+      minPrice?: number;
+      maxPrice?: number;
+      minYear?: number;
+      maxYear?: number;
+      search?: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+    };
+  }): Promise<Customer[]> {
+    let query = `SELECT customers.*
+    FROM customers`;
+
+    const { filters, pagination } = options;
+    const conditions: string[] = []; // Array per memorizzare le condizioni WHERE dinamiche
+
+    // Aggiungi le condizioni in base ai filtri
+    if (filters) {
+      if (filters.status) {
+        conditions.push(`vehicles.status = ?`);
+      }
+
+      if (filters.condition) {
+        conditions.push(`vehicles.condition = ?`);
+      }
+
+      if (filters.search) {
+        conditions.push(`(
+          LOWER(vehicles.vin) LIKE ?
+          OR LOWER(vehicles.license_plate) LIKE ?
+          OR LOWER(vehicle_models.name) LIKE ?
+          OR LOWER(vehicle_makes.name) LIKE ?
+        )`);
+      }
+    }
+
+    console.log("conditions");
+    console.log(conditions);
+
+    // Se ci sono condizioni, aggiungile alla query
+    if (conditions.length > 0) {
+      //query = `SELECT * FROM vehicles WHERE ${conditions.join(" AND ")}`;
+      query = `
+        SELECT customers.*
+        FROM customers
+        WHERE ${conditions.join(" AND ")}
+      `;
+    }
+
+    console.log("query");
+    console.log(query);
+
+    // Aggiungi la paginazione (se presente)
+    if (pagination) {
+      const { page, limit } = pagination;
+      const offset = (page - 1) * limit;
+
+      // Modifica la query per includere la paginazione
+      query = `${query} LIMIT ${limit} OFFSET ${offset}`;
+    }
+
+    try {
+      // Esegui la query con i parametri necessari
+      const parameters: any[] = [];
+
+      if (filters) {
+        if (filters.status) parameters.push(filters.status);
+        if (filters.condition) parameters.push(filters.condition);
+        if (filters.fuelType) parameters.push(filters.fuelType);
+        if (filters.modelId) parameters.push(filters.modelId);
+        if (filters.makeId) parameters.push(filters.makeId);
+        if (filters.minPrice !== undefined) parameters.push(filters.minPrice);
+        if (filters.maxPrice !== undefined) parameters.push(filters.maxPrice);
+        if (filters.minYear !== undefined) parameters.push(filters.minYear);
+        if (filters.maxYear !== undefined) parameters.push(filters.maxYear);
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          parameters.push(`%${searchLower}%`);
+          parameters.push(`%${searchLower}%`);
+          parameters.push(`%${searchLower}%`);
+          parameters.push(`%${searchLower}%`);
+        }
+      }
+
+      // Esegui la query
+      const results = await db.execute(query, parameters);
+
+      console.log("results");
+      console.log(results);
+
+      // Restituisci i risultati come array di veicoli
+      return results as Customer[];
+    } catch (error) {
+      console.error("Errore durante l'esecuzione della query:", error);
+      console.log(error);
+      throw error;
+    }
   }
 
   async searchCustomers(
@@ -1794,7 +1903,12 @@ export class DatabaseStorage implements IStorage {
       limit: number;
     };
   }): Promise<Vehicle[]> {
-    let query = `SELECT * FROM vehicles`; // Query di base per ottenere tutti i veicoli
+    let query = `SELECT vehicles.*,
+    vehicle_models.name AS model_name,
+    vehicle_makes.name AS make_name
+    FROM vehicles
+    LEFT JOIN vehicle_models ON vehicles.model_id = vehicle_models.id
+    LEFT JOIN vehicle_makes ON vehicle_models.make_id = vehicle_makes.id`;
 
     const { filters, pagination } = options;
     const conditions: string[] = []; // Array per memorizzare le condizioni WHERE dinamiche
@@ -1802,53 +1916,72 @@ export class DatabaseStorage implements IStorage {
     // Aggiungi le condizioni in base ai filtri
     if (filters) {
       if (filters.status) {
-        conditions.push(`status = ?`);
+        conditions.push(`vehicles.status = ?`);
       }
 
       if (filters.condition) {
-        conditions.push(`condition = ?`);
+        conditions.push(`vehicles.condition = ?`);
       }
 
       if (filters.fuelType) {
-        conditions.push(`fuel_type = ?`);
+        conditions.push(`vehicles.fuel_type = ?`);
       }
 
       if (filters.modelId) {
-        conditions.push(`model_id = ?`);
+        conditions.push(`vehicles.model_id = ?`);
       }
-
+      /*
       if (filters.makeId) {
         conditions.push(
           `model_id IN (SELECT id FROM models WHERE make_id = ?)`
         );
       }
-
+    */
       if (filters.minPrice !== undefined) {
-        conditions.push(`price >= ?`);
+        conditions.push(`vehicles.price >= ?`);
       }
 
       if (filters.maxPrice !== undefined) {
-        conditions.push(`price <= ?`);
+        conditions.push(`vehicles.price <= ?`);
       }
 
       if (filters.minYear !== undefined) {
-        conditions.push(`year >= ?`);
+        conditions.push(`vehicles.year >= ?`);
       }
 
       if (filters.maxYear !== undefined) {
-        conditions.push(`year <= ?`);
+        conditions.push(`vehicles.year <= ?`);
       }
 
       if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        conditions.push(`(LOWER(vin) LIKE ? OR LOWER(license_plate) LIKE ?)`);
+        conditions.push(`(
+          LOWER(vehicles.vin) LIKE ?
+          OR LOWER(vehicles.license_plate) LIKE ?
+          OR LOWER(vehicle_models.name) LIKE ?
+          OR LOWER(vehicle_makes.name) LIKE ?
+        )`);
       }
     }
 
+    console.log("conditions");
+    console.log(conditions);
+
     // Se ci sono condizioni, aggiungile alla query
     if (conditions.length > 0) {
-      query = `SELECT * FROM vehicles WHERE ${sql.join(conditions, " AND ")}`;
+      //query = `SELECT * FROM vehicles WHERE ${conditions.join(" AND ")}`;
+      query = `
+        SELECT vehicles.*,
+        vehicle_models.name AS model_name,
+        vehicle_makes.name AS make_name
+        FROM vehicles
+        LEFT JOIN vehicle_models ON vehicles.model_id = vehicle_models.id
+        LEFT JOIN vehicle_makes ON vehicle_models.make_id = vehicle_makes.id
+        WHERE ${conditions.join(" AND ")}
+      `;
     }
+
+    console.log("query");
+    console.log(query);
 
     // Aggiungi la paginazione (se presente)
     if (pagination) {
@@ -1877,13 +2010,16 @@ export class DatabaseStorage implements IStorage {
           const searchLower = filters.search.toLowerCase();
           parameters.push(`%${searchLower}%`);
           parameters.push(`%${searchLower}%`);
+          parameters.push(`%${searchLower}%`);
+          parameters.push(`%${searchLower}%`);
         }
       }
 
       // Esegui la query
       const results = await db.execute(query, parameters);
-      //console.log("results");
-      // console.log(results);
+
+      console.log("results");
+      console.log(results);
 
       // Restituisci i risultati come array di veicoli
       return results as Vehicle[]; // Cast a Vehicle[] per il tipo corretto
@@ -2048,10 +2184,6 @@ export class DatabaseStorage implements IStorage {
       .from(customers)
       .where(eq(customers.id, id));
     return results.length > 0 ? results[0] : undefined;
-  }
-
-  async getCustomers(): Promise<Customer[]> {
-    return (await db.select()).from(customers);
   }
 
   async searchCustomers(

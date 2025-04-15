@@ -41,6 +41,24 @@ import {
 import { FC, useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 
+const token = localStorage.getItem("jwt_token");
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+const fetchWithToken = async (url: string) => {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Errore nel fetch di ${url}`);
+  }
+
+  return res.json();
+};
+
 const VehicleDetailsPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const [_, navigate] = useLocation();
@@ -71,19 +89,23 @@ const VehicleDetailsPage: FC = () => {
 
   const { data: vehicle, isLoading: isLoadingVehicle } = useQuery<Vehicle>({
     queryKey: [`/api/vehicles/${id}`],
+    queryFn: () => fetchWithToken(`${baseUrl}/api/vehicles/${id}`),
   });
 
   const { data: vehicleModels, isLoading: isLoadingModels } = useQuery<any[]>({
     queryKey: ["/api/vehicle-models"],
+    queryFn: () => fetchWithToken(`${baseUrl}/api/vehicle-models`),
   });
 
   const { data: vehicleMakes, isLoading: isLoadingMakes } = useQuery<any[]>({
     queryKey: ["/api/vehicle-makes"],
+    queryFn: () => fetchWithToken(`${baseUrl}/api/vehicle-makes`),
   });
 
   const { data: services, isLoading: isLoadingServices } = useQuery({
     queryKey: [`/api/services/by-vehicle/${id}`],
     enabled: !!id,
+    queryFn: () => fetchWithToken(`${baseUrl}/api/services/by-vehicle/${id}`),
   });
 
   const getModelById = (model_id: number) => {

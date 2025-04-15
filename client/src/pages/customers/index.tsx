@@ -44,7 +44,7 @@ import {
 const CustomersPage: FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
-
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("jwt_token");
 
   const fetchWithToken = async (url: string) => {
@@ -63,8 +63,8 @@ const CustomersPage: FC = () => {
   };
 
   const { data: customers, isLoading } = useQuery({
-    queryKey: ["/api/customers"],
-    queryFn: () => fetchWithToken("/api/customers"),
+    queryKey: [baseUrl + "/api/customers"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/customers"),
   });
 
   // Filter customers based on search query

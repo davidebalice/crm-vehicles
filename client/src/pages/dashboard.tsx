@@ -19,6 +19,7 @@ import AppointmentCard from "@/components/dashboard/AppointmentCard";
 import TaskCard from "@/components/dashboard/TaskCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const DashboardPage: FC = () => {
   const { data: vehicles = [], isLoading: isLoadingVehicles } = useQuery<any[]>({

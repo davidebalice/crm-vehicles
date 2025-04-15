@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 const formSchema = insertVehicleSchema.extend({
   images: z.array(z.string()).optional(),
   features: z.array(z.string()).optional(),

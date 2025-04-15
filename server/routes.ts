@@ -172,7 +172,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Vehicle Make routes
-  app.get("/api/vehicle-makes", async (req, res) => {
+  app.get("/api/vehicle-makes", requireAuth, async (req, res) => {
+    console.log(
+      "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH"
+    );
+    console.log("GET /api/vehicle-makes");
     try {
       const vehicleMakes = await storage.getVehicleMakes();
       res.json(vehicleMakes);
@@ -181,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/vehicle-makes/:id", async (req, res) => {
+  app.get("/api/vehicle-makes/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const make = await storage.getVehicleMake(id);
@@ -306,11 +310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Vehicle Model routes
-  app.get("/api/vehicle-models", async (req, res) => {
+  app.get("/api/vehicle-models", requireAuth, async (req, res) => {
+    console.log("GET /api/vehicle-models");
     try {
       const vehicleModels = await storage.getVehicleModels();
+
       res.json(vehicleModels);
-      //console.log(vehicleModels);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch vehicle models" });
     }
@@ -323,6 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!model) {
         return res.status(404).json({ message: "Vehicle model not found" });
       }
+      console.log(model);
       res.json(model);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch vehicle model" });
@@ -489,6 +495,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await storage.getVehicles(options);
 
+      console.log("result della rotta");
+      console.log(result);
+
       // Se abbiamo un formato paginato, arricchiamo i risultati
       let vehiclesToEnrich = Array.isArray(result) ? result : result.items;
 
@@ -508,8 +517,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      //console.log("enrichedVehicles");
-      // console.log(enrichedVehicles);
+      console.log("enrichedVehicles");
+      console.log(enrichedVehicles);
 
       // Se il risultato era paginato, restituiamo un oggetto paginato arricchito
       if (!Array.isArray(result)) {

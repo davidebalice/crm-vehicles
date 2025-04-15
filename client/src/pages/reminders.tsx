@@ -1,17 +1,6 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { format } from "date-fns";
-import { it } from "date-fns/locale";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -36,23 +25,45 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { CalendarIcon, PlusCircle, Settings, Check, Clock, X, Info, Car, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+import {
+  CalendarIcon,
+  Check,
+  Clock,
+  Info,
+  PlusCircle,
+  RefreshCw,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 // Definizione dello schema per l'aggiunta/modifica dei promemoria
 const reminderSchema = z.object({
@@ -60,7 +71,7 @@ const reminderSchema = z.object({
   reminderType: z.string().min(1, "Il tipo di promemoria è obbligatorio"),
   customerId: z.number().min(1, "Il cliente è obbligatorio"),
   vehicleId: z.number().nullable(),
-  dueDate: z.date().refine(date => date >= new Date(), {
+  dueDate: z.date().refine((date) => date >= new Date(), {
     message: "La data di scadenza deve essere nel futuro",
   }),
   isCompleted: z.boolean().optional().default(false),
@@ -103,8 +114,27 @@ type Reminder = {
 const ReminderPage: React.FC = () => {
   const { toast } = useToast();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
+  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(
+    null
+  );
   const [isServiceRunning, setIsServiceRunning] = useState(false);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const token = localStorage.getItem("jwt_token");
+
+  const fetchWithToken = async (url: string) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Errore nel fetch di ${url}`);
+    }
+
+    return res.json();
+  };
 
   // Form di aggiunta/modifica promemoria
   const form = useForm<ReminderFormValues>({
@@ -124,33 +154,44 @@ const ReminderPage: React.FC = () => {
     isLoading: isLoadingReminders,
     refetch: refetchReminders,
   } = useQuery<Reminder[]>({
-    queryKey: ["/api/reminders"],
+    queryKey: [baseUrl + "/api/reminders"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/reminders?pending=true");
+      const res = await apiRequest(
+        "GET",
+        baseUrl + "/api/reminders?pending=true"
+      );
       return await res.json();
     },
   });
 
   // Query per caricare i clienti
-  const {
-    data: customers = [],
-    isLoading: isLoadingCustomers,
-  } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<
+    Customer[]
+  >({
+    queryKey: [baseUrl + "/api/customers"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/customers"),
   });
 
   // Query per caricare i veicoli
-  const {
-    data: vehiclesData,
-    isLoading: isLoadingVehicles,
-  } = useQuery({
-    queryKey: ["/api/vehicles"],
+  const { data: vehiclesData, isLoading: isLoadingVehicles } = useQuery({
+    queryKey: [baseUrl + "/api/vehicles"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/vehicles");
+        const data = await res.json();
+        return data;
+      } catch (error) {
+        console.error("Error fetching:", error);
+        return { running: false };
+      }
+    },
   });
-  
+
   // Extract vehicle items from paginated response or use as-is if it's an array
-  const vehicles = vehiclesData && typeof vehiclesData === 'object' && 'items' in vehiclesData 
-    ? vehiclesData.items as Array<any> 
-    : (vehiclesData as Array<any>) || [];
+  const vehicles =
+    vehiclesData && typeof vehiclesData === "object" && "items" in vehiclesData
+      ? (vehiclesData.items as Array<any>)
+      : (vehiclesData as Array<any>) || [];
 
   // Query per ottenere lo stato del servizio
   const {
@@ -190,7 +231,8 @@ const ReminderPage: React.FC = () => {
     onError: (error) => {
       toast({
         title: "Errore",
-        description: "Si è verificato un errore durante la creazione del promemoria",
+        description:
+          "Si è verificato un errore durante la creazione del promemoria",
         variant: "destructive",
       });
     },
@@ -198,7 +240,13 @@ const ReminderPage: React.FC = () => {
 
   // Mutation per aggiornare un promemoria
   const updateReminderMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<ReminderFormValues> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<ReminderFormValues>;
+    }) => {
       const res = await apiRequest("PUT", `/api/reminders/${id}`, data);
       return await res.json();
     },
@@ -214,7 +262,8 @@ const ReminderPage: React.FC = () => {
     onError: (error) => {
       toast({
         title: "Errore",
-        description: "Si è verificato un errore durante l'aggiornamento del promemoria",
+        description:
+          "Si è verificato un errore durante l'aggiornamento del promemoria",
         variant: "destructive",
       });
     },
@@ -238,7 +287,8 @@ const ReminderPage: React.FC = () => {
     onError: (error) => {
       toast({
         title: "Errore",
-        description: "Si è verificato un errore durante l'eliminazione del promemoria",
+        description:
+          "Si è verificato un errore durante l'eliminazione del promemoria",
         variant: "destructive",
       });
     },
@@ -247,7 +297,9 @@ const ReminderPage: React.FC = () => {
   // Mutation per avviare il servizio
   const startServiceMutation = useMutation({
     mutationFn: async (intervalMinutes: number) => {
-      const res = await apiRequest("POST", "/api/reminders/service/start", { intervalMinutes });
+      const res = await apiRequest("POST", "/api/reminders/service/start", {
+        intervalMinutes,
+      });
       return await res.json();
     },
     onSuccess: () => {
@@ -335,7 +387,9 @@ const ReminderPage: React.FC = () => {
   // Ottieni il nome del cliente
   const getCustomerName = (customerId: number) => {
     const customer = customers.find((c) => c.id === customerId);
-    return customer ? `${customer.firstName} ${customer.lastName}` : "Cliente sconosciuto";
+    return customer
+      ? `${customer.firstName} ${customer.lastName}`
+      : "Cliente sconosciuto";
   };
 
   // Ottieni i dettagli del veicolo
@@ -343,11 +397,11 @@ const ReminderPage: React.FC = () => {
     if (!vehicleId) return "Nessun veicolo";
     const vehicle = vehicles.find((v: any) => v.id === vehicleId);
     if (!vehicle) return "Veicolo sconosciuto";
-    
+
     const makeName = vehicle.make?.name || "";
     const modelName = vehicle.model?.name || "";
     const licensePlate = vehicle.licensePlate || "";
-    
+
     return `${makeName} ${modelName} - ${licensePlate}`;
   };
 
@@ -373,9 +427,9 @@ const ReminderPage: React.FC = () => {
   // Determina lo stile del badge in base ai giorni rimanenti
   const getReminderBadgeStyle = (dateString: string, isCompleted: boolean) => {
     if (isCompleted) return "bg-green-100 text-green-800";
-    
+
     const daysRemaining = getDaysRemaining(dateString);
-    
+
     if (daysRemaining < 0) return "bg-red-100 text-red-800";
     if (daysRemaining <= 3) return "bg-red-100 text-red-800";
     if (daysRemaining <= 10) return "bg-yellow-100 text-yellow-800";
@@ -385,7 +439,7 @@ const ReminderPage: React.FC = () => {
 
   // Effetto per ricaricare lo stato del servizio
   useEffect(() => {
-    if (serviceStatus && 'running' in serviceStatus) {
+    if (serviceStatus && "running" in serviceStatus) {
       setIsServiceRunning(serviceStatus.running);
     }
   }, [serviceStatus]);
@@ -401,30 +455,30 @@ const ReminderPage: React.FC = () => {
         </div>
         <div className="flex space-x-2">
           {isServiceRunning ? (
-            <Button 
-              variant="outline" 
-              className="flex items-center space-x-2 bg-red-50 hover:bg-red-100" 
+            <Button
+              variant="outline"
+              className="flex items-center space-x-2 bg-red-50 hover:bg-red-100"
               onClick={() => stopServiceMutation.mutate()}
             >
               <X size={16} className="text-red-500" />
               <span>Ferma servizio notifiche</span>
             </Button>
           ) : (
-            <Button 
-              variant="outline" 
-              className="flex items-center space-x-2 bg-green-50 hover:bg-green-100" 
+            <Button
+              variant="outline"
+              className="flex items-center space-x-2 bg-green-50 hover:bg-green-100"
               onClick={() => startServiceMutation.mutate(60)}
             >
               <Clock size={16} className="text-green-500" />
               <span>Avvia servizio notifiche</span>
             </Button>
           )}
-          <Button 
+          <Button
             onClick={() => {
               setSelectedReminder(null);
               form.reset();
               setIsAddModalOpen(true);
-            }} 
+            }}
             className="flex items-center space-x-2"
           >
             <PlusCircle size={16} />
@@ -439,13 +493,21 @@ const ReminderPage: React.FC = () => {
             <div className="flex items-center space-x-3">
               <RefreshCw size={20} className="text-green-600 animate-spin" />
               <div>
-                <p className="font-medium text-green-800">Servizio di notifiche automatiche attivo</p>
+                <p className="font-medium text-green-800">
+                  Servizio di notifiche automatiche attivo
+                </p>
                 <p className="text-sm text-green-600">
-                  I promemoria verranno inviati automaticamente ai clienti in base alla configurazione
+                  I promemoria verranno inviati automaticamente ai clienti in
+                  base alla configurazione
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetchStatus()} className="border-green-200">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchStatus()}
+              className="border-green-200"
+            >
               Aggiorna stato
             </Button>
           </CardContent>
@@ -469,7 +531,8 @@ const ReminderPage: React.FC = () => {
               <Info className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">Nessun promemoria attivo</h3>
               <p className="text-muted-foreground mt-1 max-w-sm">
-                Non ci sono promemoria attivi al momento. Crea un nuovo promemoria per iniziare.
+                Non ci sono promemoria attivi al momento. Crea un nuovo
+                promemoria per iniziare.
               </p>
               <Button
                 variant="outline"
@@ -500,24 +563,35 @@ const ReminderPage: React.FC = () => {
                 <TableBody>
                   {reminders.map((reminder) => (
                     <TableRow key={reminder.id}>
-                      <TableCell className="font-medium">{reminder.description}</TableCell>
+                      <TableCell className="font-medium">
+                        {reminder.description}
+                      </TableCell>
                       <TableCell>{reminder.reminderType}</TableCell>
                       <TableCell>
-                        {reminder.customer ? `${reminder.customer.firstName} ${reminder.customer.lastName}` : getCustomerName(reminder.customerId)}
+                        {reminder.customer
+                          ? `${reminder.customer.firstName} ${reminder.customer.lastName}`
+                          : getCustomerName(reminder.customerId)}
                       </TableCell>
                       <TableCell>
-                        {reminder.vehicle ? 
-                          `${reminder.vehicle.make?.name || ''} ${reminder.vehicle.model?.name || ''} ${reminder.vehicle.licensePlate || ''}` : 
-                          getVehicleDetails(reminder.vehicleId)
-                        }
+                        {reminder.vehicle
+                          ? `${reminder.vehicle.make?.name || ""} ${
+                              reminder.vehicle.model?.name || ""
+                            } ${reminder.vehicle.licensePlate || ""}`
+                          : getVehicleDetails(reminder.vehicleId)}
                       </TableCell>
                       <TableCell>{formatDate(reminder.dueDate)}</TableCell>
                       <TableCell>
-                        <Badge className={getReminderBadgeStyle(reminder.dueDate, reminder.isCompleted)}>
-                          {reminder.isCompleted 
-                            ? "Completato" 
-                            : `${getDaysRemaining(reminder.dueDate)} giorni rimanenti`
-                          }
+                        <Badge
+                          className={getReminderBadgeStyle(
+                            reminder.dueDate,
+                            reminder.isCompleted
+                          )}
+                        >
+                          {reminder.isCompleted
+                            ? "Completato"
+                            : `${getDaysRemaining(
+                                reminder.dueDate
+                              )} giorni rimanenti`}
                         </Badge>
                         {reminder.notificationsSent > 0 && (
                           <div className="text-xs text-muted-foreground mt-1">
@@ -527,16 +601,16 @@ const ReminderPage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleEditReminder(reminder)}
                           >
                             Modifica
                           </Button>
                           {!reminder.isCompleted && (
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               className="bg-green-50 hover:bg-green-100 text-green-700"
                               onClick={() => markAsCompleted(reminder)}
@@ -557,15 +631,18 @@ const ReminderPage: React.FC = () => {
       </Card>
 
       {/* Modal per aggiungere/modificare un promemoria */}
-      <Dialog open={isAddModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
+      <Dialog
+        open={isAddModalOpen}
+        onOpenChange={(open) => !open && handleCloseModal()}
+      >
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle>
               {selectedReminder ? "Modifica promemoria" : "Nuovo promemoria"}
             </DialogTitle>
             <DialogDescription>
-              {selectedReminder 
-                ? "Modifica i dettagli del promemoria selezionato." 
+              {selectedReminder
+                ? "Modifica i dettagli del promemoria selezionato."
                 : "Aggiungi un nuovo promemoria alla lista."}
             </DialogDescription>
           </DialogHeader>
@@ -587,7 +664,7 @@ const ReminderPage: React.FC = () => {
                   </FormItem>
                 )}
               />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -595,8 +672,8 @@ const ReminderPage: React.FC = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo di promemoria</FormLabel>
-                      <Select 
-                        value={field.value} 
+                      <Select
+                        value={field.value}
                         onValueChange={field.onChange}
                       >
                         <FormControl>
@@ -605,11 +682,17 @@ const ReminderPage: React.FC = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="manutenzione">Manutenzione</SelectItem>
+                          <SelectItem value="manutenzione">
+                            Manutenzione
+                          </SelectItem>
                           <SelectItem value="revisione">Revisione</SelectItem>
                           <SelectItem value="bollo">Bollo auto</SelectItem>
-                          <SelectItem value="assicurazione">Assicurazione</SelectItem>
-                          <SelectItem value="appuntamento">Appuntamento</SelectItem>
+                          <SelectItem value="assicurazione">
+                            Assicurazione
+                          </SelectItem>
+                          <SelectItem value="appuntamento">
+                            Appuntamento
+                          </SelectItem>
                           <SelectItem value="altro">Altro</SelectItem>
                         </SelectContent>
                       </Select>
@@ -635,7 +718,9 @@ const ReminderPage: React.FC = () => {
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, "PPP", { locale: it }) : (
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: it })
+                              ) : (
                                 <span>Seleziona data</span>
                               )}
                             </Button>
@@ -666,7 +751,9 @@ const ReminderPage: React.FC = () => {
                       <FormLabel>Cliente</FormLabel>
                       <Select
                         value={field.value ? field.value.toString() : ""}
-                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
                         disabled={isLoadingCustomers}
                       >
                         <FormControl>
@@ -676,7 +763,10 @@ const ReminderPage: React.FC = () => {
                         </FormControl>
                         <SelectContent>
                           {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id.toString()}>
+                            <SelectItem
+                              key={customer.id}
+                              value={customer.id.toString()}
+                            >
                               {customer.firstName} {customer.lastName}
                             </SelectItem>
                           ))}
@@ -695,7 +785,11 @@ const ReminderPage: React.FC = () => {
                       <FormLabel>Veicolo (opzionale)</FormLabel>
                       <Select
                         value={field.value?.toString() || "none"}
-                        onValueChange={(value) => field.onChange(value !== "none" ? parseInt(value) : null)}
+                        onValueChange={(value) =>
+                          field.onChange(
+                            value !== "none" ? parseInt(value) : null
+                          )
+                        }
                         disabled={isLoadingVehicles}
                       >
                         <FormControl>
@@ -706,8 +800,13 @@ const ReminderPage: React.FC = () => {
                         <SelectContent>
                           <SelectItem value="none">Nessun veicolo</SelectItem>
                           {vehicles.map((vehicle: any) => (
-                            <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                              {vehicle.make?.name || ""} {vehicle.model?.name || ""} - {vehicle.licensePlate || vehicle.vin}
+                            <SelectItem
+                              key={vehicle.id}
+                              value={vehicle.id.toString()}
+                            >
+                              {vehicle.make?.name || ""}{" "}
+                              {vehicle.model?.name || ""} -{" "}
+                              {vehicle.licensePlate || vehicle.vin}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -719,19 +818,21 @@ const ReminderPage: React.FC = () => {
               </div>
 
               <DialogFooter className="pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleCloseModal}
                   className="mr-2"
                 >
                   Annulla
                 </Button>
                 {selectedReminder && (
-                  <Button 
-                    type="button" 
-                    variant="destructive" 
-                    onClick={() => deleteReminderMutation.mutate(selectedReminder.id)}
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() =>
+                      deleteReminderMutation.mutate(selectedReminder.id)
+                    }
                     className="mr-auto"
                   >
                     Elimina

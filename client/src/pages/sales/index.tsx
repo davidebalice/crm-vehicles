@@ -44,7 +44,7 @@ const SalesPage: FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
-
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   const token = localStorage.getItem("jwt_token");
 

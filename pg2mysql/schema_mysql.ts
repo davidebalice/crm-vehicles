@@ -1,4 +1,13 @@
-import { mysqlTable, varchar, int, text, tinyint, timestamp, decimal, json } from "drizzle-orm/mysql-core";
+import {
+  decimal,
+  int,
+  json,
+  mysqlTable,
+  text,
+  timestamp,
+  tinyint,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -34,7 +43,9 @@ export const vehicleMakes = mysqlTable("vehicle_makes", {
   logoUrl: varchar("logo_url", { length: 255 }),
 });
 
-export const insertVehicleMakeSchema = createInsertSchema(vehicleMakes).omit({ id: true });
+export const insertVehicleMakeSchema = createInsertSchema(vehicleMakes).omit({
+  id: true,
+});
 export type InsertVehicleMake = z.infer<typeof insertVehicleMakeSchema>;
 export type VehicleMake = typeof vehicleMakes.$inferSelect;
 
@@ -48,7 +59,9 @@ export const vehicleModels = mysqlTable("vehicle_models", {
   specifications: json("specifications"),
 });
 
-export const insertVehicleModelSchema = createInsertSchema(vehicleModels).omit({ id: true });
+export const insertVehicleModelSchema = createInsertSchema(vehicleModels).omit({
+  id: true,
+});
 export type InsertVehicleModel = z.infer<typeof insertVehicleModelSchema>;
 export type VehicleModel = typeof vehicleModels.$inferSelect;
 
@@ -56,6 +69,8 @@ export type VehicleModel = typeof vehicleModels.$inferSelect;
 export const vehicles = mysqlTable("vehicles", {
   id: int("id").primaryKey().autoincrement(),
   modelId: int("model_id").notNull(),
+  make_name: varchar("make_name", { length: 70 }),
+  model_name: varchar("model_name", { length: 70 }),
   vin: varchar("vin", { length: 50 }).notNull().unique(),
   licensePlate: varchar("license_plate", { length: 20 }),
   color: varchar("color", { length: 50 }).notNull(),
@@ -72,7 +87,10 @@ export const vehicles = mysqlTable("vehicles", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true, createdAt: true });
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type Vehicle = typeof vehicles.$inferSelect;
 
@@ -91,7 +109,10 @@ export const customers = mysqlTable("customers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true });
+export const insertCustomerSchema = createInsertSchema(customers).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Customer = typeof customers.$inferSelect;
 
@@ -125,7 +146,9 @@ export const appointments = mysqlTable("appointments", {
   notes: text("notes"),
 });
 
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({
+  id: true,
+});
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointments.$inferSelect;
 
@@ -139,12 +162,18 @@ export const services = mysqlTable("services", {
   status: varchar("status", { length: 50 }).notNull().default("scheduled"), // scheduled, in_progress, completed, cancelled
   description: text("description").notNull(),
   cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
-  partsCost: decimal("parts_cost", { precision: 10, scale: 2 }).notNull().default("0"),
-  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }).notNull().default("0"),
+  partsCost: decimal("parts_cost", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
   notes: text("notes"),
 });
 
-export const insertServiceSchema = createInsertSchema(services).omit({ id: true });
+export const insertServiceSchema = createInsertSchema(services).omit({
+  id: true,
+});
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type Service = typeof services.$inferSelect;
 
@@ -167,7 +196,10 @@ export const suppliers = mysqlTable("suppliers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: true, createdAt: true });
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type Supplier = typeof suppliers.$inferSelect;
 
@@ -193,11 +225,11 @@ export const parts = mysqlTable("parts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertPartSchema = createInsertSchema(parts).omit({ 
-  id: true, 
-  createdAt: true, 
+export const insertPartSchema = createInsertSchema(parts).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
-  lastOrderDate: true
+  lastOrderDate: true,
 });
 export type InsertPart = z.infer<typeof insertPartSchema>;
 export type Part = typeof parts.$inferSelect;
@@ -211,15 +243,17 @@ export const partOrders = mysqlTable("part_orders", {
   expectedDeliveryDate: timestamp("expected_delivery_date"),
   deliveryDate: timestamp("delivery_date"),
   status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, partial, delivered, cancelled
-  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull().default("0"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
   notes: text("notes"),
   createdBy: int("created_by").notNull(), // user ID
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertPartOrderSchema = createInsertSchema(partOrders).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertPartOrderSchema = createInsertSchema(partOrders).omit({
+  id: true,
+  createdAt: true,
 });
 export type InsertPartOrder = z.infer<typeof insertPartOrderSchema>;
 export type PartOrder = typeof partOrders.$inferSelect;
@@ -235,7 +269,9 @@ export const partOrderItems = mysqlTable("part_order_items", {
   notes: text("notes"),
 });
 
-export const insertPartOrderItemSchema = createInsertSchema(partOrderItems).omit({ id: true });
+export const insertPartOrderItemSchema = createInsertSchema(
+  partOrderItems
+).omit({ id: true });
 export type InsertPartOrderItem = z.infer<typeof insertPartOrderItemSchema>;
 export type PartOrderItem = typeof partOrderItems.$inferSelect;
 
@@ -256,7 +292,9 @@ export const finances = mysqlTable("finances", {
   notes: text("notes"),
 });
 
-export const insertFinanceSchema = createInsertSchema(finances).omit({ id: true });
+export const insertFinanceSchema = createInsertSchema(finances).omit({
+  id: true,
+});
 export type InsertFinance = z.infer<typeof insertFinanceSchema>;
 export type Finance = typeof finances.$inferSelect;
 
@@ -272,7 +310,10 @@ export const tasks = mysqlTable("tasks", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true, createdAt: true });
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 
@@ -290,7 +331,12 @@ export const reminders = mysqlTable("reminders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertReminderSchema = createInsertSchema(reminders).omit({ id: true, createdAt: true, notificationsSent: true, lastNotificationSent: true });
+export const insertReminderSchema = createInsertSchema(reminders).omit({
+  id: true,
+  createdAt: true,
+  notificationsSent: true,
+  lastNotificationSent: true,
+});
 export type InsertReminder = z.infer<typeof insertReminderSchema>;
 export type Reminder = typeof reminders.$inferSelect;
 
@@ -299,45 +345,84 @@ export const vehicleCatalogImportSchema = z.object({
   makes: z.array(
     z.object({
       name: z.string().min(1, "Nome marca richiesto"),
-      type: z.enum(["car", "motorcycle"], { 
-        errorMap: () => ({ message: "Tipo deve essere 'car' o 'motorcycle'" })
+      type: z.enum(["car", "motorcycle"], {
+        errorMap: () => ({ message: "Tipo deve essere 'car' o 'motorcycle'" }),
       }),
       logoUrl: z.string().url("URL logo non valido").optional(),
-      models: z.array(
-        z.object({
-          name: z.string().min(1, "Nome modello richiesto"),
-          year: z.number().int().min(1900, "Anno non valido").max(new Date().getFullYear() + 2, "Anno futuro non valido"),
-          type: z.enum(["car", "motorcycle"], { 
-            errorMap: () => ({ message: "Tipo deve essere 'car' o 'motorcycle'" })
-          }),
-          specifications: z.record(z.any()).optional(),
-          vehicles: z.array(
-            z.object({
-              vin: z.string().min(1, "VIN richiesto"),
-              licensePlate: z.string().optional(),
-              color: z.string().min(1, "Colore richiesto"),
-              status: z.enum(["available", "sold", "in_maintenance", "reserved"], {
-                errorMap: () => ({ message: "Stato non valido. Valori accettati: available, sold, in_maintenance, reserved" })
-              }).default("available"),
-              condition: z.enum(["new", "used"], {
-                errorMap: () => ({ message: "Condizione deve essere 'new' o 'used'" })
+      models: z
+        .array(
+          z.object({
+            name: z.string().min(1, "Nome modello richiesto"),
+            year: z
+              .number()
+              .int()
+              .min(1900, "Anno non valido")
+              .max(new Date().getFullYear() + 2, "Anno futuro non valido"),
+            type: z.enum(["car", "motorcycle"], {
+              errorMap: () => ({
+                message: "Tipo deve essere 'car' o 'motorcycle'",
               }),
-              fuelType: z.enum(["benzina", "diesel", "ibrido", "gas"], {
-                errorMap: () => ({ message: "Alimentazione deve essere 'benzina', 'diesel', 'ibrido', o 'gas'" })
-              }).default("benzina"),
-              mileage: z.number().int().min(0, "Il chilometraggio non può essere negativo").default(0),
-              price: z.number().positive("Il prezzo deve essere positivo"),
-              costPrice: z.number().positive("Il prezzo di costo deve essere positivo"),
-              description: z.string().optional(),
-              year: z.number().int().min(1900, "Anno non valido").max(new Date().getFullYear() + 2, "Anno futuro non valido"),
-              features: z.record(z.any()).optional(),
-              images: z.array(z.string().url("URL immagine non valido")).optional(),
-            })
-          ).optional().default([])
-        })
-      ).optional().default([])
+            }),
+            specifications: z.record(z.any()).optional(),
+            vehicles: z
+              .array(
+                z.object({
+                  vin: z.string().min(1, "VIN richiesto"),
+                  licensePlate: z.string().optional(),
+                  color: z.string().min(1, "Colore richiesto"),
+                  status: z
+                    .enum(["available", "sold", "in_maintenance", "reserved"], {
+                      errorMap: () => ({
+                        message:
+                          "Stato non valido. Valori accettati: available, sold, in_maintenance, reserved",
+                      }),
+                    })
+                    .default("available"),
+                  condition: z.enum(["new", "used"], {
+                    errorMap: () => ({
+                      message: "Condizione deve essere 'new' o 'used'",
+                    }),
+                  }),
+                  fuelType: z
+                    .enum(["benzina", "diesel", "ibrido", "gas"], {
+                      errorMap: () => ({
+                        message:
+                          "Alimentazione deve essere 'benzina', 'diesel', 'ibrido', o 'gas'",
+                      }),
+                    })
+                    .default("benzina"),
+                  mileage: z
+                    .number()
+                    .int()
+                    .min(0, "Il chilometraggio non può essere negativo")
+                    .default(0),
+                  price: z.number().positive("Il prezzo deve essere positivo"),
+                  costPrice: z
+                    .number()
+                    .positive("Il prezzo di costo deve essere positivo"),
+                  description: z.string().optional(),
+                  year: z
+                    .number()
+                    .int()
+                    .min(1900, "Anno non valido")
+                    .max(
+                      new Date().getFullYear() + 2,
+                      "Anno futuro non valido"
+                    ),
+                  features: z.record(z.any()).optional(),
+                  images: z
+                    .array(z.string().url("URL immagine non valido"))
+                    .optional(),
+                })
+              )
+              .optional()
+              .default([]),
+          })
+        )
+        .optional()
+        .default([]),
     })
-  )
+  ),
 });
 
 export type VehicleCatalogImport = z.infer<typeof vehicleCatalogImportSchema>;
@@ -350,36 +435,45 @@ export const vehicleCatalogExportSchema = z.object({
       name: z.string(),
       type: z.enum(["car", "motorcycle"]),
       logoUrl: z.string().optional(),
-      models: z.array(
-        z.object({
-          id: z.number(),
-          name: z.string(),
-          year: z.number(),
-          type: z.enum(["car", "motorcycle"]),
-          specifications: z.record(z.any()).optional(),
-          vehicles: z.array(
-            z.object({
-              id: z.number(),
-              vin: z.string(),
-              licensePlate: z.string().optional(),
-              color: z.string(),
-              status: z.enum(["available", "sold", "in_maintenance", "reserved"]),
-              condition: z.enum(["new", "used"]),
-              fuelType: z.enum(["benzina", "diesel", "ibrido", "gas"]),
-              mileage: z.number(),
-              price: z.number(),
-              costPrice: z.number(),
-              description: z.string().optional(),
-              year: z.number(),
-              features: z.record(z.any()).optional(),
-              images: z.array(z.string()).optional(),
-              createdAt: z.string().or(z.date())
-            })
-          ).optional()
-        })
-      ).optional()
+      models: z
+        .array(
+          z.object({
+            id: z.number(),
+            name: z.string(),
+            year: z.number(),
+            type: z.enum(["car", "motorcycle"]),
+            specifications: z.record(z.any()).optional(),
+            vehicles: z
+              .array(
+                z.object({
+                  id: z.number(),
+                  vin: z.string(),
+                  licensePlate: z.string().optional(),
+                  color: z.string(),
+                  status: z.enum([
+                    "available",
+                    "sold",
+                    "in_maintenance",
+                    "reserved",
+                  ]),
+                  condition: z.enum(["new", "used"]),
+                  fuelType: z.enum(["benzina", "diesel", "ibrido", "gas"]),
+                  mileage: z.number(),
+                  price: z.number(),
+                  costPrice: z.number(),
+                  description: z.string().optional(),
+                  year: z.number(),
+                  features: z.record(z.any()).optional(),
+                  images: z.array(z.string()).optional(),
+                  createdAt: z.string().or(z.date()),
+                })
+              )
+              .optional(),
+          })
+        )
+        .optional(),
     })
-  )
+  ),
 });
 
 export type VehicleCatalogExport = z.infer<typeof vehicleCatalogExportSchema>;
@@ -402,7 +496,10 @@ export const transactions = mysqlTable("transactions", {
   createdBy: int("created_by").notNull(), // ID utente che ha creato la transazione
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, createdAt: true });
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
@@ -428,10 +525,14 @@ export const scheduledTransactions = mysqlTable("scheduled_transactions", {
   createdBy: int("created_by").notNull(),
 });
 
-export const insertScheduledTransactionSchema = createInsertSchema(scheduledTransactions).omit({ 
-  id: true, 
-  createdAt: true, 
-  lastNotificationSent: true 
+export const insertScheduledTransactionSchema = createInsertSchema(
+  scheduledTransactions
+).omit({
+  id: true,
+  createdAt: true,
+  lastNotificationSent: true,
 });
-export type InsertScheduledTransaction = z.infer<typeof insertScheduledTransactionSchema>;
+export type InsertScheduledTransaction = z.infer<
+  typeof insertScheduledTransactionSchema
+>;
 export type ScheduledTransaction = typeof scheduledTransactions.$inferSelect;

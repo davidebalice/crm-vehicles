@@ -34,6 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { APPOINTMENT_STATUS, APPOINTMENT_TYPES } from "@/lib/constants";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const AppointmentsPage: FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,7 +43,6 @@ const AppointmentsPage: FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [appointmentToEdit, setAppointmentToEdit] = useState<any>(null);
   const { toast } = useToast();
-
   const token = localStorage.getItem("jwt_token");
 
   const fetchWithToken = async (url: string) => {
@@ -61,18 +61,18 @@ const AppointmentsPage: FC = () => {
   };
 
   const { data: appointments, isLoading } = useQuery({
-    queryKey: ["/api/appointments"],
-    queryFn: () => fetchWithToken("/api/appointments"),
+    queryKey: [baseUrl + "/api/appointments"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/appointments"),
   });
 
   const { data: customers } = useQuery({
-    queryKey: ["/api/customers"],
-    queryFn: () => fetchWithToken("/api/customers"),
+    queryKey: [baseUrl + "/api/customers"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/customers"),
   });
 
   const { data: vehiclesData } = useQuery({
-    queryKey: ["/api/vehicles"],
-    queryFn: () => fetchWithToken("/api/vehicles"),
+    queryKey: [baseUrl + "/api/vehicles"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/vehicles"),
   });
 
   // Extract vehicle items from paginated response or use as-is if it's an array

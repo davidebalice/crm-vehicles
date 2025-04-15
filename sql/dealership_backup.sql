@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Creato il: Apr 12, 2025 alle 15:19
+-- Creato il: Apr 14, 2025 alle 10:36
 -- Versione del server: 10.4.24-MariaDB
 -- Versione PHP: 8.1.6
 
@@ -420,7 +420,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `full_name`, `email`, `role`, `avatar_url`, `last_access`) VALUES
-(1, 'admin', 'admin123', 'Mario Rossi', 'admin@automotoplus.com', 'admin', 'https://randomuser.me/api/portraits/men/32.jpg', NULL),
+(1, 'admin', 'admin123', 'Mario Rossi', 'admin@automotoplus.com', 'admin', 'http://localhost:5000/uploads/users/1744484764020-profileImage.jpg', NULL),
 (3, 'mario', '54bc5a8ab05fafde2a649c0ccc4a7aeceb95e78ecdf501c5f5d203a5e481e0f3a8d52181143a3dfe5d4865b17cc44d5fce02a0f399dd5b6d1ec9dd9514768b62.98fb2c8f1b5f5753', 'Mario Rossi', 'mario@rossi.it', 'admin', NULL, NULL);
 
 -- --------------------------------------------------------
@@ -431,6 +431,7 @@ INSERT INTO `users` (`id`, `username`, `password`, `full_name`, `email`, `role`,
 
 CREATE TABLE `vehicles` (
   `id` int(11) NOT NULL,
+  `make_id` int(11) NOT NULL,
   `model_id` int(11) NOT NULL,
   `vin` text NOT NULL,
   `license_plate` text DEFAULT NULL,
@@ -452,11 +453,11 @@ CREATE TABLE `vehicles` (
 -- Dump dei dati per la tabella `vehicles`
 --
 
-INSERT INTO `vehicles` (`id`, `model_id`, `vin`, `license_plate`, `color`, `condition`, `status`, `year`, `mileage`, `price`, `cost_price`, `description`, `features`, `images`, `created_at`, `fuel_type`) VALUES
-(1, 1, 'WAUZZZ8K9NA123456', NULL, 'Blue', 'new', 'available', 2023, 0, '38500', '35000', 'Brand new Audi A4 Avant with premium features', '[\"Leather seats\", \"Navigation\", \"Climate control\", \"LED headlights\"]', '[\"https://images.unsplash.com/photo-1494976388531-d1058494cdd8\"]', '2025-04-04 09:44:01', 'diesel'),
-(2, 2, 'WVWZZZ1KZAW987654', 'AB123CD', 'Red', 'used', 'available', 2021, 25420, '28900', '25000', 'Well-maintained Volkswagen Golf GTI in excellent condition', '[\"Sport seats\", \"Panoramic roof\", \"Digital dashboard\", \"Adaptive cruise control\"]', '[\"http://localhost:5000/uploads/vehicles/2/1744361949714-mainImage.png\",\"http://localhost:5000/uploads/vehicles/2/1744361949716-otherImages.jpg\",\"http://localhost:5000/uploads/vehicles/2/1744361949717-otherImages.jpeg\"]', '2025-04-04 09:44:01', 'benzina'),
-(3, 3, 'ZDMH123AB456C789D', 'MC789EF', 'Red', 'used', 'available', 2022, 1250, '22450', '20000', 'Ducati Panigale V4 with low mileage, perfect condition', '[\"ohlins suspension\", \"Brembo brakes\", \"Quick shifter\", \"Traction control\"]', '[\"https://images.unsplash.com/photo-1608921619105-dc9921761093\"]', '2025-04-04 09:44:01', 'benzina'),
-(4, 4, '1HD1KTC14EB012345', NULL, 'Black', 'new', 'available', 2023, 0, '29900', '27000', 'New Harley Davidson Street Glide with touring package', '[\"Infotainment system\", \"ABS\", \"Cruise control\", \"Heated grips\"]', '[\"https://images.unsplash.com/photo-1631192928737-d0e4d1805e79\"]', '2025-04-04 09:44:01', 'benzina');
+INSERT INTO `vehicles` (`id`, `make_id`, `model_id`, `vin`, `license_plate`, `color`, `condition`, `status`, `year`, `mileage`, `price`, `cost_price`, `description`, `features`, `images`, `created_at`, `fuel_type`) VALUES
+(1, 0, 1, 'WAUZZZ8K9NA123456', NULL, 'Blue', 'new', 'available', 2023, 0, '38500', '35000', 'Brand new Audi A4 Avant with premium features', '[\"Leather seats\", \"Navigation\", \"Climate control\", \"LED headlights\"]', '[\"https://images.unsplash.com/photo-1494976388531-d1058494cdd8\"]', '2025-04-04 09:44:01', 'diesel'),
+(2, 0, 2, 'WVWZZZ1KZAW987654', 'AB123CD', 'Red', 'used', 'available', 2021, 25420, '28900', '25000', 'Well-maintained Volkswagen Golf GTI in excellent condition', '[\"Sport seats\", \"Panoramic roof\", \"Digital dashboard\", \"Adaptive cruise control\"]', '[\"http://localhost:5000/uploads/vehicles/1744475831711-mainImage.jpg\"]', '2025-04-04 09:44:01', 'benzina'),
+(3, 0, 3, 'ZDMH123AB456C789D', 'MC789EF', 'Red', 'used', 'available', 2022, 1250, '22450', '20000', 'Ducati Panigale V4 with low mileage, perfect condition', '[\"ohlins suspension\", \"Brembo brakes\", \"Quick shifter\", \"Traction control\"]', '[\"https://images.unsplash.com/photo-1608921619105-dc9921761093\"]', '2025-04-04 09:44:01', 'benzina'),
+(4, 0, 4, '1HD1KTC14EB012345', NULL, 'Black', 'new', 'available', 2023, 0, '29900', '27000', 'New Harley Davidson Street Glide with touring package', '[\"Infotainment system\", \"ABS\", \"Cruise control\", \"Heated grips\"]', '[\"https://images.unsplash.com/photo-1631192928737-d0e4d1805e79\"]', '2025-04-04 09:44:01', 'benzina');
 
 -- --------------------------------------------------------
 
@@ -667,7 +668,8 @@ ALTER TABLE `users`
 --
 ALTER TABLE `vehicles`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `vehicles_model_id_fkey` (`model_id`);
+  ADD KEY `vehicles_model_id_fkey` (`model_id`),
+  ADD KEY `make_id` (`make_id`);
 
 --
 -- Indici per le tabelle `vehicle_makes`

@@ -50,19 +50,21 @@ const VehiclesPage: FC = () => {
     ],
     queryFn: () => fetchWithToken(baseUrl + "/api/vehicles"),
   });
-
-  const { data: vehicleModels, isLoading: isLoadingModels } = useQuery<any[]>({
+/*
+  const { data: vehicleModels, isLoading: isLoadingModels } = useQuery({
     queryKey: [baseUrl + "/api/vehicle-models"],
-    queryFn: () => fetchWithToken(baseUrl + "/api/vehicles-models"),
+    queryFn: () => fetchWithToken(baseUrl + "/api/vehicle-models"),
   });
 
-  const { data: vehicleMakes, isLoading: isLoadingMakes } = useQuery<any[]>({
+  const { data: vehicleMakes, isLoading: isLoadingMakes } = useQuery({
     queryKey: [baseUrl + "/api/vehicle-makes"],
-    queryFn: () => fetchWithToken(baseUrl + "/api/vehicles-makes"),
+    queryFn: () => fetchWithToken(baseUrl + "/api/vehicle-makes"),
   });
+*/
 
-  //console.log(vehicleModels);
-  //console.log(vehicleMakes);
+/*
+  console.log(vehicleModels);
+  console.log(vehicleMakes);
 
   // Helper function to get make name by model id
   const getMakeNameByModelId = (modelId: number) => {
@@ -82,7 +84,7 @@ const VehiclesPage: FC = () => {
     const model = vehicleModels.find((m: any) => m.id === modelId);
     return model ? model.name : "Sconosciuto";
   };
-
+*/
   // Filter vehicles
   const vehicleItems =
     vehicles && "items" in vehicles
@@ -241,7 +243,7 @@ const VehiclesPage: FC = () => {
         </TabsList>
 
         <TabsContent value="grid" className="mt-4">
-          {isLoading || isLoadingModels || isLoadingMakes ? (
+          {isLoading  ? (
             <div className="text-center py-8 text-muted-foreground">
               Caricamento veicoli...
             </div>
@@ -274,8 +276,7 @@ const VehiclesPage: FC = () => {
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-semibold">
-                        {getMakeNameByModelId(vehicle.model_id)}{" "}
-                        {getModelNameById(vehicle.model_id)}
+                        {vehicle.model_name} {vehicle.make_name}
                       </h3>
                       <div className="flex items-center text-sm text-muted-foreground mt-2">
                         <Calendar className="mr-1 h-4 w-4" />
@@ -314,7 +315,7 @@ const VehiclesPage: FC = () => {
         <TabsContent value="list" className="mt-4">
           <Card>
             <CardContent className="p-0">
-              {isLoading || isLoadingModels || isLoadingMakes ? (
+              {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Caricamento veicoli...
                 </div>
@@ -336,8 +337,7 @@ const VehiclesPage: FC = () => {
                         ></div>
                         <div className="flex-1">
                           <h4 className="font-medium">
-                            {getMakeNameByModelId(vehicle.model_id)}{" "}
-                            {getModelNameById(vehicle.model_id)}
+                            {vehicle.model_name} {vehicle.make_name}
                           </h4>
                           <div className="flex text-sm text-neutral-600 mt-1">
                             <span className="flex items-center mr-3">

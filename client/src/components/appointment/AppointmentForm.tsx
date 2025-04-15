@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { format } from "date-fns";
-import { CalendarIcon, X, Search, Check, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { CalendarIcon, Check, Loader2, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-import { insertAppointmentSchema } from "@shared/schema";
-import { APPOINTMENT_TYPES, APPOINTMENT_STATUS } from "@/lib/constants";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { APPOINTMENT_STATUS, APPOINTMENT_TYPES } from "@/lib/constants";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { insertAppointmentSchema } from "@shared/schema";
 
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -26,6 +29,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -33,17 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // Schema per la validazione del form
@@ -80,8 +79,26 @@ export function AppointmentForm({
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showVehicleSearch, setShowVehicleSearch] = useState(false);
-
+  const [vehiclesSearch, setVehiclesSearch] = useState<any[]>([]);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const isEditing = !!appointmentToEdit;
+
+  const token = localStorage.getItem("jwt_token");
+
+  const fetchWithToken = async (url: string) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Errore nel fetch di ${url}`);
+    }
+
+    return res.json();
+  };
 
   // Form con validazione
   const form = useForm<AppointmentFormValues>({
@@ -93,73 +110,101 @@ export function AppointmentForm({
       vehicleId: appointmentToEdit?.vehicleId || null,
       customerId: appointmentToEdit?.customerId || 0,
       userId: 1, // Per ora hardcoded, in un'app reale sarebbe l'utente loggato
-      date: appointmentToEdit?.date ? new Date(appointmentToEdit.date) : new Date(),
-      time: appointmentToEdit?.date 
-        ? format(new Date(appointmentToEdit.date), "HH:mm") 
+      date: appointmentToEdit?.date
+        ? new Date(appointmentToEdit.date)
+        : new Date(),
+      time: appointmentToEdit?.date
+        ? format(new Date(appointmentToEdit.date), "HH:mm")
         : format(new Date(), "HH:mm"),
     },
   });
 
   // Query per i clienti iniziali (solo per l'editing di appuntamenti esistenti)
   const { data: initialCustomers = [] } = useQuery({
-    queryKey: ["/api/customers"],
+    queryKey: [baseUrl + "/api/customers"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/customers"),
     staleTime: 1000 * 60, // 1 minuto
   });
-  
+
   // Query per la ricerca paginata dei clienti
-  const { 
-    data: searchedCustomers = [], 
-    isFetching: isSearchingCustomers 
-  } = useQuery({
-    queryKey: ["/api/customers", customerSearchQuery, customerPage],
-    queryFn: async () => {
-      if (!customerSearchQuery || customerSearchQuery.length < 2) return [];
-      const response = await fetch(`/api/customers?search=${encodeURIComponent(customerSearchQuery)}&page=${customerPage}&limit=10`);
-      if (!response.ok) throw new Error("Errore nella ricerca dei clienti");
-      return response.json();
-    },
-    enabled: customerSearchQuery.length >= 2 && showCustomerSearch,
-    staleTime: 1000 * 30, // 30 secondi
-  });
+  const { data: searchedCustomers = [], isFetching: isSearchingCustomers } =
+    useQuery({
+      queryKey: [baseUrl + "/api/customers", customerSearchQuery, customerPage],
+      queryFn: async () => {
+        if (!customerSearchQuery || customerSearchQuery.length < 2) return [];
+        const url = `${baseUrl}/api/customers?search=${encodeURIComponent(
+          customerSearchQuery
+        )}&page=${customerPage}&limit=10`;
+        const response = await fetchWithToken(url);
+        if (!response.ok) throw new Error("Errore nella ricerca dei clienti");
+        return response.json();
+      },
+      enabled: customerSearchQuery.length >= 2 && showCustomerSearch,
+      staleTime: 1000 * 30, // 30 secondi
+    });
 
   // Query per i veicoli iniziali (solo per l'editing di appuntamenti esistenti)
   const { data: vehiclesData = [] } = useQuery({
-    queryKey: ["/api/vehicles"],
+    queryKey: [baseUrl + "/api/vehicles"],
+    queryFn: () => fetchWithToken(baseUrl + "/api/vehicles"),
     staleTime: 1000 * 60, // 1 minuto
   });
-  
-  // Estrai gli item dei veicoli dalla risposta paginata o usa così com'è se è un array
-  const vehicles = vehiclesData && typeof vehiclesData === 'object' && 'items' in vehiclesData ? vehiclesData.items : vehiclesData;
-  
-  // Query per la ricerca paginata dei veicoli
-  const { 
-    data: searchedVehiclesData = [], 
-    isFetching: isSearchingVehicles 
-  } = useQuery({
-    queryKey: ["/api/vehicles", vehicleSearchQuery],
-    queryFn: async () => {
-      if (!vehicleSearchQuery || vehicleSearchQuery.length < 2) return [];
-      const response = await fetch(`/api/vehicles?search=${encodeURIComponent(vehicleSearchQuery)}&page=1&limit=20`);
-      console.log(response);
-      if (!response.ok) throw new Error("Errore nella ricerca dei veicoli");
-      return response.json();
-    },
-    enabled: vehicleSearchQuery.length >= 2 && showVehicleSearch,
-    staleTime: 1000 * 30, // 30 secondi
-  });
 
-  console.log('searchedVehiclesData');
-  console.log(searchedVehiclesData);
-  
+  // Estrai gli item dei veicoli dalla risposta paginata o usa così com'è se è un array
+  const vehicles =
+    vehiclesData && typeof vehiclesData === "object" && "items" in vehiclesData
+      ? vehiclesData.items
+      : vehiclesData;
+
+  // Query per la ricerca paginata dei veicoli
+  const { data: searchedVehiclesData = [], isFetching: isSearchingVehicles } =
+    useQuery({
+      queryKey: [baseUrl + "/api/vehicles", vehicleSearchQuery],
+      queryFn: async () => {
+        if (!vehicleSearchQuery || vehicleSearchQuery.length < 3) return [];
+
+        const url = `${baseUrl}/api/vehicles?search=${encodeURIComponent(
+          vehicleSearchQuery
+        )}&page=1&limit=10`;
+        const response = await fetchWithToken(url);
+
+        console.log("response");
+        console.log(response);
+
+        setVehiclesSearch(response);
+
+        if (!response.ok) throw new Error("Errore nella ricerca dei veicoli");
+
+        const data = await response.json();
+        console.log("Parsed JSON", data);
+
+        return response;
+      },
+      enabled: vehicleSearchQuery.length >= 3 && showVehicleSearch,
+      staleTime: 1000 * 30, // 30 secondi
+    });
+
+
+
+
+
+  const dataToRender =
+    searchedVehiclesData.length > 0 ? searchedVehiclesData : [];
+
   // Estrai gli items dalla risposta paginata o usa come è se è un array
-  const searchedVehicles = searchedVehiclesData && 'items' in searchedVehiclesData ? searchedVehiclesData.items : searchedVehiclesData;
+  const searchedVehicles =
+    searchedVehiclesData && "items" in searchedVehiclesData
+      ? searchedVehiclesData.items
+      : searchedVehiclesData;
 
   // Caricamento dati per la modifica
   useEffect(() => {
     if (isEditing && appointmentToEdit) {
       // Cerca il cliente selezionato
       if (Array.isArray(initialCustomers)) {
-        const customer = initialCustomers.find((c: any) => c.id === appointmentToEdit.customerId);
+        const customer = initialCustomers.find(
+          (c: any) => c.id === appointmentToEdit.customerId
+        );
         if (customer) {
           setSelectedCustomer(customer);
         }
@@ -171,7 +216,9 @@ export function AppointmentForm({
       }
       // Altrimenti cerca il veicolo usando l'ID
       else if (appointmentToEdit.vehicleId && Array.isArray(vehicles)) {
-        const vehicle = vehicles.find((v: any) => v.id === appointmentToEdit.vehicleId);
+        const vehicle = vehicles.find(
+          (v: any) => v.id === appointmentToEdit.vehicleId
+        );
         if (vehicle) {
           setSelectedVehicle(vehicle);
         }
@@ -243,7 +290,7 @@ export function AppointmentForm({
 
       // Invalida la cache per aggiornare la lista
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
-      
+
       // Resetta il form e chiudi il modale
       form.reset();
       setSelectedCustomer(null);
@@ -253,7 +300,8 @@ export function AppointmentForm({
       console.error("Errore durante il salvataggio:", error);
       toast({
         title: "Errore",
-        description: "Si è verificato un errore durante il salvataggio dell'appuntamento.",
+        description:
+          "Si è verificato un errore durante il salvataggio dell'appuntamento.",
         variant: "destructive",
       });
     } finally {
@@ -279,7 +327,7 @@ export function AppointmentForm({
 
   // Carica più risultati
   const loadMoreCustomers = () => {
-    setCustomerPage(prev => prev + 1);
+    setCustomerPage((prev) => prev + 1);
   };
 
   return (
@@ -296,7 +344,7 @@ export function AppointmentForm({
             {/* Selezione cliente con ricerca */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Cliente *</label>
-              
+
               {selectedCustomer ? (
                 <div className="flex items-center justify-between p-2 border rounded-md">
                   <div>
@@ -347,7 +395,7 @@ export function AppointmentForm({
                         }}
                         autoFocus
                       />
-                      
+
                       {customerSearchQuery.length < 2 ? (
                         <div className="text-center py-2 text-muted-foreground">
                           Digita almeno 2 caratteri per iniziare la ricerca
@@ -401,7 +449,7 @@ export function AppointmentForm({
                           )}
                         </div>
                       )}
-                      
+
                       <div className="flex justify-end">
                         <Button
                           type="button"
@@ -496,10 +544,7 @@ export function AppointmentForm({
                   <FormItem>
                     <FormLabel>Ora *</FormLabel>
                     <FormControl>
-                      <Input
-                        type="time"
-                        {...field}
-                      />
+                      <Input type="time" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -525,11 +570,13 @@ export function AppointmentForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(APPOINTMENT_STATUS).map(([key, value]) => (
-                          <SelectItem key={key} value={key}>
-                            {value}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(APPOINTMENT_STATUS).map(
+                          ([key, value]) => (
+                            <SelectItem key={key} value={key}>
+                              {value}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -541,12 +588,13 @@ export function AppointmentForm({
             {/* Selezione veicolo opzionale */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Veicolo (opzionale)</label>
-              
+
               {selectedVehicle ? (
                 <div className="flex items-center justify-between p-2 border rounded-md">
                   <div>
                     <div className="font-medium">
-                      {selectedVehicle.make?.name || ""} {selectedVehicle.model?.name || ""}
+                      {selectedVehicle.make?.name || ""}{" "}
+                      {selectedVehicle.model?.name || ""}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {selectedVehicle.licensePlate} - {selectedVehicle.color}
@@ -602,8 +650,8 @@ export function AppointmentForm({
                             <div className="flex justify-center items-center py-4">
                               <Loader2 className="h-6 w-6 animate-spin" />
                             </div>
-                          ) : searchedVehicles.length > 0 ? (
-                            searchedVehicles.map((vehicle: any) => (
+                          ) : vehiclesSearch.length > 0 ? (
+                            vehiclesSearch.map((vehicle: any) => (
                               <div
                                 key={vehicle.id}
                                 className="flex justify-between items-center p-2 hover:bg-accent rounded-md cursor-pointer"
@@ -611,10 +659,13 @@ export function AppointmentForm({
                               >
                                 <div>
                                   <div className="font-medium">
-                                    {vehicle.make?.name} {vehicle.model?.name}
+                                    {vehicle.make_name} {vehicle.model_name}
                                   </div>
                                   <div className="text-sm text-muted-foreground">
-                                    {vehicle.licensePlate ? vehicle.licensePlate : 'Nessuna targa'} - {vehicle.color}
+                                    {vehicle.licensePlate
+                                      ? vehicle.licensePlate
+                                      : "Nessuna targa"}{" "}
+                                    - {vehicle.color}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
                                     VIN: {vehicle.vin}
@@ -656,10 +707,10 @@ export function AppointmentForm({
                 <FormItem>
                   <FormLabel>Note</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Inserisci eventuali note sull'appuntamento..." 
+                    <Textarea
+                      placeholder="Inserisci eventuali note sull'appuntamento..."
                       {...field}
-                      value={field.value || ''}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
