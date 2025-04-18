@@ -80,6 +80,7 @@ export function AppointmentForm({
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showVehicleSearch, setShowVehicleSearch] = useState(false);
   const [vehiclesSearch, setVehiclesSearch] = useState<any[]>([]);
+  const [customersSearch, setCustomersSearch] = useState<any[]>([]);
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
   const isEditing = !!appointmentToEdit;
 
@@ -131,15 +132,21 @@ export function AppointmentForm({
     useQuery({
       queryKey: [baseUrl + "/api/customers", customerSearchQuery, customerPage],
       queryFn: async () => {
-        if (!customerSearchQuery || customerSearchQuery.length < 2) return [];
+        if (!customerSearchQuery || customerSearchQuery.length < 3) return [];
         const url = `${baseUrl}/api/customers?search=${encodeURIComponent(
           customerSearchQuery
         )}&page=${customerPage}&limit=10`;
         const response = await fetchWithToken(url);
+
+        console.log("response customers");
+        console.log(response);
+
+        setCustomersSearch(response);
+
         if (!response.ok) throw new Error("Errore nella ricerca dei clienti");
         return response.json();
       },
-      enabled: customerSearchQuery.length >= 2 && showCustomerSearch,
+      enabled: customerSearchQuery.length >= 3 && showCustomerSearch,
       staleTime: 1000 * 30, // 30 secondi
     });
 
@@ -183,10 +190,6 @@ export function AppointmentForm({
       enabled: vehicleSearchQuery.length >= 3 && showVehicleSearch,
       staleTime: 1000 * 30, // 30 secondi
     });
-
-
-
-
 
   const dataToRender =
     searchedVehiclesData.length > 0 ? searchedVehiclesData : [];
@@ -349,7 +352,7 @@ export function AppointmentForm({
                 <div className="flex items-center justify-between p-2 border rounded-md">
                   <div>
                     <div className="font-medium">
-                      {selectedCustomer.firstName} {selectedCustomer.lastName}
+                      {selectedCustomer.first_name} {selectedCustomer.last_name}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {selectedCustomer.phone} - {selectedCustomer.email}
@@ -396,9 +399,9 @@ export function AppointmentForm({
                         autoFocus
                       />
 
-                      {customerSearchQuery.length < 2 ? (
+                      {customerSearchQuery.length < 3 ? (
                         <div className="text-center py-2 text-muted-foreground">
-                          Digita almeno 2 caratteri per iniziare la ricerca
+                          Digita almeno 3 caratteri per iniziare la ricerca
                         </div>
                       ) : (
                         <div className="max-h-[200px] overflow-y-auto space-y-2">
@@ -406,9 +409,9 @@ export function AppointmentForm({
                             <div className="flex justify-center items-center py-4">
                               <Loader2 className="h-6 w-6 animate-spin" />
                             </div>
-                          ) : searchedCustomers.length > 0 ? (
+                          ) : customersSearch.length > 0 ? (
                             <>
-                              {searchedCustomers.map((customer: any) => (
+                              {customersSearch.map((customer: any) => (
                                 <div
                                   key={customer.id}
                                   className="flex justify-between items-center p-2 hover:bg-accent rounded-md cursor-pointer"
@@ -416,10 +419,10 @@ export function AppointmentForm({
                                 >
                                   <div>
                                     <div className="font-medium">
-                                      {customer.firstName} {customer.lastName}
+                                      {customer.first_name} {customer.last_name}
                                     </div>
                                     <div className="text-sm text-muted-foreground">
-                                      {customer.phone}
+                                      {customer.phone} - {customer.email}
                                     </div>
                                   </div>
                                   <Button variant="ghost" size="sm">
@@ -593,15 +596,19 @@ export function AppointmentForm({
                 <div className="flex items-center justify-between p-2 border rounded-md">
                   <div>
                     <div className="font-medium">
-                      {selectedVehicle.make?.name || ""}{" "}
-                      {selectedVehicle.model?.name || ""}
+                      {selectedVehicle.make_name} {selectedVehicle.model_name}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {selectedVehicle.licensePlate} - {selectedVehicle.color}
+                      {selectedVehicle.licensePlate
+                        ? selectedVehicle.licensePlate
+                        : "Nessuna targa"}{" "}
+                      - {selectedVehicle.color}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      VIN: {selectedVehicle.vin}
-                    </div>
+                    {selectedVehicle.vin && (
+                      <div className="text-xs text-muted-foreground">
+                        Telaio: {selectedVehicle.vin}
+                      </div>
+                    )}
                   </div>
                   <Button
                     type="button"
@@ -642,7 +649,7 @@ export function AppointmentForm({
                       />
                       {vehicleSearchQuery.length < 2 ? (
                         <div className="text-center py-2 text-muted-foreground">
-                          Digita almeno 2 caratteri per iniziare la ricerca
+                          Digita almeno 3 caratteri per iniziare la ricerca
                         </div>
                       ) : (
                         <div className="max-h-[200px] overflow-y-auto space-y-2">
@@ -667,9 +674,11 @@ export function AppointmentForm({
                                       : "Nessuna targa"}{" "}
                                     - {vehicle.color}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    VIN: {vehicle.vin}
-                                  </div>
+                                  {vehicle.vin && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Telaio: {vehicle.vin}
+                                    </div>
+                                  )}
                                 </div>
                                 <Button variant="ghost" size="sm">
                                   <Check className="h-4 w-4" />

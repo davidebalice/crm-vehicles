@@ -102,10 +102,10 @@ const AuthPage: FC = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-2xl text-center">
-              Auto Moto Plus
+              Gestionale concessionaria
             </CardTitle>
             <CardDescription className="text-center">
-              Sistema di gestione concessionaria
+              Sistema di gestione veicoli, ricambi, interventi e clienti
             </CardDescription>
           </CardHeader>
 
@@ -158,7 +158,7 @@ const AuthPage: FC = () => {
       <div className="hidden md:flex md:w-1/2 bg-gray-100 dark:bg-gray-800 p-8 flex-col justify-center">
         <div className="max-w-lg mx-auto">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-indigo-400 bg-clip-text text-transparent">
-            Auto Moto Plus Gestionale
+            Gestionale concessionaria
           </h1>
           <p className="text-lg mb-6">
             La piattaforma completa per la gestione della tua concessionaria

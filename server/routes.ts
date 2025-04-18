@@ -596,27 +596,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Customer routes
   app.get("/api/customers", requireAuth, async (req, res) => {
-    try {
-      // Se ci sono parametri di ricerca, utilizziamo la ricerca avanzata
-      if (req.query.search) {
-        const searchTerm = req.query.search as string;
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+   // try {
 
-        const customers = await storage.searchCustomers(
-          searchTerm,
-          page,
-          limit
-        );
-        res.json(customers);
-      } else {
-        // Altrimenti restituiamo tutti i clienti (comportamento esistente)
-        const customers = await storage.getCustomers();
-        res.json(customers);
-      }
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch customers" });
-    }
+
+
+
+
+
+
+
+
+
+
+   const page = parseInt(req.query.page as string) || 1;
+   const limit = parseInt(req.query.limit as string) || 10;
+   const search = req.query.search as string;
+
+   // Costruiamo gli oggetti per il filtro e la paginazione
+   const options: {
+     filters?: {
+       search?: string;
+     };
+     pagination: {
+       page: number;
+       limit: number;
+     };
+   } = {
+     pagination: { page, limit },
+   };
+
+   // Aggiungiamo i filtri solo se sono definiti
+   if (
+     search
+   ) {
+     options.filters = {};
+
+    
+     if (search) options.filters.search = search;
+   }
+
+
+
+
+
+      const customers = await storage.getCustomers(options);
+      res.json(customers);
+   // } catch (error) {
+     // res.status(500).json({ message: "Failed to fetch customers" });
+   // }
   });
 
   app.get("/api/customers/:id", requireAuth, async (req, res) => {
