@@ -146,7 +146,26 @@ export interface IStorage {
   // Vehicle Models
   getVehicleModel(id: number): Promise<VehicleModel | undefined>;
   getVehicleModelsByMake(makeId: number): Promise<VehicleModel[]>;
-  getVehicleModels(): Promise<VehicleModel[]>;
+  getVehicleModels(options?: {
+    filters?: {
+      search?: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+    };
+  }): Promise<VehicleModel[]>;
+
+  searchVehicleMakesModels(options?: {
+    filters?: {
+      search?: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+    };
+  }): Promise<VehicleModel[]>;
+
   createVehicleModel(model: InsertVehicleModel): Promise<VehicleModel>;
   updateVehicleModel(
     id: number,
@@ -1614,10 +1633,89 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Metodo per ottenere tutti i modelli di veicoli
-  async getVehicleModels(): Promise<VehicleModel[]> {
+  async getVehicleModels(options: {
+    filters?: {
+      search?: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+    };
+  }): Promise<VehicleModel[]> {
     const query = `SELECT * FROM vehicle_models`;
+
+    if (options) {
+      const { filters, pagination } = options;
+      const conditions: string[] = []; // Array per memorizzare le condizioni WHERE dinamiche
+
+      // Aggiungi le condizioni in base ai filtri
+      if (filters) {
+        if (filters.search) {
+          conditions.push(`name = ?`);
+        }
+      }
+    }
+
     try {
       const results = await db.execute(query);
+      //console.log(results);
+      return results as VehicleModel[];
+    } catch (error) {
+      console.error("Errore durante l'esecuzione della query", error);
+      throw error;
+    }
+  }
+
+  // Metodo per ottenere tutti i modelli di veicoli
+  async searchVehicleMakesModels(options: {
+    filters?: {
+      search?: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+    };
+  }): Promise<VehicleModel[]> {
+    let query = `SELECT * FROM vehicle_models`;
+
+    const { filters, pagination } = options;
+    const conditions: string[] = []; // Array per memorizzare le condizioni WHERE dinamiche
+
+    // Aggiungi le condizioni in base ai filtri
+    if (filters) {
+      if (filters.search) {
+        conditions.push(`vehicle_models.name LIKE ?`);
+        conditions.push(`vehicle_makes.name LIKE ?`);
+      }
+    }
+
+    try {
+      // Esegui la query con i parametri necessari
+      const parameters: any[] = [];
+
+      if (filters) {
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          parameters.push(`%${searchLower}%`);
+          parameters.push(`%${searchLower}%`);
+        }
+      }
+
+      if (conditions.length > 0) {
+        query = `
+          SELECT vehicle_models.id,
+          vehicle_models.year,
+          vehicle_models.name AS model_name,
+          vehicle_makes.name AS make_name
+          FROM vehicle_models
+          LEFT JOIN vehicle_makes ON vehicle_models.make_id = vehicle_makes.id
+          WHERE ${conditions.join(" OR ")}
+        `;
+      }
+
+      // Esegui la query
+      const results = await db.execute(query, parameters);
+
       //console.log(results);
       return results as VehicleModel[];
     } catch (error) {
@@ -1748,7 +1846,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getVehicle(id: number): Promise<Vehicle | undefined> {
-    const query = `SELECT * FROM vehicles WHERE id = ?`;
+   // const query = `SELECT * FROM vehicles WHERE id = ?`;
+
+    const query = `
+    SELECT v.*,
+    m.name AS model_name,
+    s.name AS make_name,
+    m.year AS model_year
+    FROM vehicles v
+    LEFT JOIN vehicle_models m ON v.model_id = m.id
+    LEFT JOIN vehicle_makes s ON m.make_id = s.id
+    WHERE v.id = ?
+  `;
+
+
+
     const result: any = await db.execute(query, [id]);
 
     if (Array.isArray(result) && result.length > 0) {
@@ -1908,8 +2020,8 @@ export class DatabaseStorage implements IStorage {
       // Esegui la query
       const results = await db.execute(query, parameters);
 
-      console.log("results");
-      console.log(results);
+      //console.log("results");
+      //console.log(results);
 
       // Restituisci i risultati come array di veicoli
       return results as Vehicle[]; // Cast a Vehicle[] per il tipo corretto

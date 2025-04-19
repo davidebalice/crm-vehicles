@@ -173,9 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Vehicle Make routes
   app.get("/api/vehicle-makes", requireAuth, async (req, res) => {
-    console.log(
-      "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH"
-    );
+
     console.log("GET /api/vehicle-makes");
     try {
       const vehicleMakes = await storage.getVehicleMakes();
@@ -311,7 +309,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Vehicle Model routes
   app.get("/api/vehicle-models", requireAuth, async (req, res) => {
-    console.log("GET /api/vehicle-models");
     try {
       const vehicleModels = await storage.getVehicleModels();
 
@@ -319,6 +316,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch vehicle models" });
     }
+  });
+
+  app.get("/api/vehicle-makes-models", requireAuth, async (req, res) => {
+    console.log("GET /api/vehicle-makes-models");
+    console.log('req.query.search');
+    console.log(req.query.search);
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+   
+    const search = req.query.search as string;
+
+    // Costruiamo gli oggetti per il filtro e la paginazione
+    const options: {
+      filters?: {
+
+        search?: string;
+      };
+      pagination: {
+        page: number;
+        limit: number;
+      };
+    } = {
+      pagination: { page, limit },
+    };
+
+    // Aggiungiamo i filtri solo se sono definiti
+    if (
+
+      search
+    ) {
+      options.filters = {};
+
+
+      if (search) options.filters.search = search;
+    }
+
+
+
+
+   // try {
+      const vehicleModels = await storage.searchVehicleMakesModels(options);
+
+      res.json(vehicleModels);
+   // } catch (error) {
+    //  res.status(500).json({ message: "Failed to fetch vehicle models" });
+   // }
+
+    
   });
 
   app.get("/api/vehicle-models/:id", async (req, res) => {
@@ -407,17 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     //console.log("GET /api/vehicles");
 
     try {
-      /*
-      if (req.headers["authorization"]) {
-        const result = await requireAuth(req, res, next);
-        if (!result) return;
-      } else if (req.headers["x-api-key"]) {
-        const result = await requireApiKey(req, res, next);
-        if (!result) return;
-      } else {
-        return res.status(401).json({ error: "Autenticazione richiesta" });
-      }
-*/
+      
       // Parametri di paginazione e filtri
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;

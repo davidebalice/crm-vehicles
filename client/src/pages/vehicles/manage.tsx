@@ -1,11 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import VehicleForm from "@/components/vehicle/VehicleForm";
+import { fetchWithToken } from "@/lib/fetchWithToken";
 import { queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { FC } from "react";
 import { useLocation, useParams } from "wouter";
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
+const token = localStorage.getItem("jwt_token");
 
 const VehicleManagePage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,13 +18,14 @@ const VehicleManagePage: FC = () => {
 
   // Load vehicle data if editing
   const { data: vehicle, isLoading } = useQuery({
-    queryKey: [`/api/vehicles/${id}`],
+    queryKey: [`${baseUrl}/api/vehicles/${id}`],
+    queryFn: () => fetchWithToken(baseUrl + `${baseUrl}/api/vehicles/${id}`),
     enabled: isEditing,
   });
 
   const handleSuccess = () => {
     // Invalidate vehicles query to refresh list after add/edit
-    queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
+    queryClient.invalidateQueries({ queryKey: [baseUrl + "/api/vehicles"] });
 
     // Navigate vehicle detail page
     navigate(`/vehicles/details/${id}`);
